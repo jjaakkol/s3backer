@@ -129,6 +129,7 @@ struct s3b_dcache {
     u_int                           max_blocks;
     u_int                           num_alloc;
     u_int                           fadvise;
+    u_int                           fallocate;
     uint32_t                        flags;              // copy of file_header.flags
     off_t                           data;
     off_t                           file_size;
@@ -162,9 +163,8 @@ static int s3b_dcache_write2(struct s3b_dcache *priv, int fd, const char *filena
 #if USE_FALLOCATE
 static int s3b_dcache_write_block_falloc(struct s3b_dcache *priv, u_int dslot, const char *src, u_int doff, u_int len);
 static u_int s3b_dcache_count_zero_fs_blocks(struct s3b_dcache *priv, const char *src, u_int len);
-#else
-static int s3b_dcache_write_block_simple(struct s3b_dcache *priv, u_int dslot, const void *src, u_int off, u_int len);
 #endif
+static int s3b_dcache_write_block_simple(struct s3b_dcache *priv, u_int dslot, const void *src, u_int off, u_int len);
 
 // Internal variables
 static const struct dir_entry zero_entry;
@@ -197,6 +197,7 @@ s3b_dcache_open(struct s3b_dcache **dcachep, struct block_cache_conf *config,
     priv->block_size = config->block_size;
     priv->max_blocks = config->cache_size;
     priv->fadvise = config->fadvise;
+    priv->fallocate = config -> fallocate;
     if ((priv->filename = strdup(config->cache_file)) == NULL) {
         r = errno;
         goto fail1;
@@ -566,10 +567,9 @@ int
 s3b_dcache_write_block(struct s3b_dcache *priv, u_int dslot, const void *src, u_int off, u_int len)
 {
 #if USE_FALLOCATE
-    return s3b_dcache_write_block_falloc(priv, dslot, src, off, len);
-#else
-    return s3b_dcache_write_block_simple(priv, dslot, src, off, len);
+    if (priv->fallocate) return s3b_dcache_write_block_falloc(priv, dslot, src, off, len);
 #endif
+    return s3b_dcache_write_block_simple(priv, dslot, src, off, len);
 }
 
 #if USE_FALLOCATE
@@ -696,7 +696,7 @@ done:
     return num_blocks;
 }
 
-#else   /* !USE_FALLOCATE */
+#endif   /* USE_FALLOCATE */
 
 /*
  * Write data into one dslot.
@@ -726,7 +726,6 @@ s3b_dcache_write_block_simple(struct s3b_dcache *priv, u_int dslot, const void *
     return 0;
 }
 
-#endif  /* !USE_FALLOCATE */
 
 /*
  * Synchronize outstanding changes to persistent storage.

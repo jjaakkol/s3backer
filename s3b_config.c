@@ -81,6 +81,7 @@
 #define S3BACKER_DEFAULT_BLOCK_CACHE_WRITE_DELAY    250             // 250ms
 #define S3BACKER_DEFAULT_BLOCK_CACHE_TIMEOUT        0
 #define S3BACKER_DEFAULT_BLOCK_CACHE_MAX_DIRTY      0
+#define S3BACKER_DEFAULT_BLOCK_CACHE_FALLOCATE      0               // disabled
 #define S3BACKER_DEFAULT_READ_AHEAD                 4
 #define S3BACKER_DEFAULT_READ_AHEAD_TRIGGER         2
 #define S3BACKER_DEFAULT_COMPRESSION                "deflate"
@@ -187,6 +188,7 @@ static struct s3b_config config = {
         .timeout=               S3BACKER_DEFAULT_BLOCK_CACHE_TIMEOUT,
         .read_ahead=            S3BACKER_DEFAULT_READ_AHEAD,
         .read_ahead_trigger=    S3BACKER_DEFAULT_READ_AHEAD_TRIGGER,
+        .fallocate=             S3BACKER_DEFAULT_BLOCK_CACHE_FALLOCATE,
     },
 
     // FUSE operations config
@@ -326,6 +328,12 @@ static const struct fuse_opt option_list[] = {
         .offset=    offsetof(struct s3b_config, block_cache.fadvise),
         .value=     1
     },
+    {
+        .templ=     "--blockCacheFallocate",
+        .offset=    offsetof(struct s3b_config, block_cache.fallocate),
+        .value=     1
+    },
+
     {
         .templ=     "--blockSize=%s",
         .offset=    offsetof(struct s3b_config, block_size_str),
@@ -1996,6 +2004,7 @@ usage(void)
     fprintf(stderr, "\t--%-27s %s\n", "blockCacheMaxDirty=NUM", "Block cache maximum number of dirty blocks");
     fprintf(stderr, "\t--%-27s %s\n", "blockCacheNoVerify", "Disable verification of data loaded from cache file");
     fprintf(stderr, "\t--%-27s %s\n", "blockCacheFileAdvise", "Use posix_fadvise(2) after reading from cache file");
+    fprintf(stderr, "\t--%-27s %s\n", "blockCacheFallocate", "Use fallocate(2) to unallocate zero blocks from cache file");
     fprintf(stderr, "\t--%-27s %s\n", "blockCacheSize=NUM", "Block cache size (in number of blocks)");
     fprintf(stderr, "\t--%-27s %s\n", "blockCacheSync", "Block cache performs all writes synchronously");
     fprintf(stderr, "\t--%-27s %s\n", "blockCacheRecoverDirtyBlocks", "Recover dirty cache file blocks on startup");

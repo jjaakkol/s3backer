@@ -52,6 +52,7 @@ struct block_cache_conf {
     u_int               num_protected;
     const char          *cache_file;
     log_func_t          *log;
+    u_int               fallocate;
 };
 
 // Statistics structure for block_cache
